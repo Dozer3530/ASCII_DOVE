@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glyphforge — ASCII Plate Works</title>
+<meta name="description" content="A studio for turning images, video and live capture into glyph art.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0908'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23c9a227' font-family='serif'%3E%40%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<div class="app">
+
+  <!-- ══════════════════════════ TOP BAR ══════════════════════════ -->
+  <header class="topbar">
+    <div class="mark">
+      <span class="mark-glyph">▚</span>
+      <span class="mark-name">Glyphforge</span>
+      <span class="mark-sub">plate works</span>
+    </div>
+
+    <nav class="tb-group" aria-label="Source">
+      <button class="btn" id="btnOpen" title="Open image, video, GIF or a folder of frames (O)">
+        <span class="btn-key">⌘</span> Open
+      </button>
+      <button class="btn btn-quiet" id="btnCam" title="Use the camera as a live source">Camera</button>
+      <button class="btn btn-quiet" id="btnScreen" title="Capture a screen or window">Screen</button>
+      <button class="btn btn-quiet" id="btnSample" title="Return to the built-in test sigil">Sigil</button>
+    </nav>
+
+    <div class="tb-spacer"></div>
+
+    <div class="tb-group tb-source" id="sourceInfo" title="Current source">
+      <span class="src-kind" id="srcKind">image</span>
+      <span class="src-name" id="srcName">forge sigil</span>
+      <span class="src-dim" id="srcDim">900×900</span>
+    </div>
+
+    <div class="tb-spacer"></div>
+
+    <nav class="tb-group" aria-label="Presets">
+      <select id="presetSelect" class="select select-preset" title="Load a preset">
+        <option value="">— presets —</option>
+      </select>
+      <button class="btn btn-quiet" id="btnPresetSave" title="Save current settings as a preset (S)">Save</button>
+      <button class="btn btn-quiet" id="btnPresetManage" title="Manage, import and export presets">Manage</button>
+    </nav>
+
+    <nav class="tb-group" aria-label="Output">
+      <button class="btn btn-quiet" id="btnText" title="View and copy as plain text (T)">Text</button>
+      <button class="btn btn-gold" id="btnExport" title="Export (E)">Export</button>
+    </nav>
+  </header>
+
+  <!-- ══════════════════════════ BODY ══════════════════════════ -->
+  <main class="body">
+
+    <!-- ─────────── LEFT: glyph armoury ─────────── -->
+    <aside class="rail rail-left" id="railLeft">
+      <div class="rail-head">
+        <h2 class="rail-title"><span class="sigil">§</span> Armoury</h2>
+        <span class="rail-count" id="setCount">—</span>
+      </div>
+
+      <div class="rail-search">
+        <input type="search" id="setSearch" placeholder="search 60+ sets…" autocomplete="off" spellcheck="false">
+      </div>
+
+      <div class="cat-strip" id="catStrip" role="tablist" aria-label="Character categories"></div>
+
+      <div class="set-list" id="setList" role="listbox" aria-label="Character sets"></div>
+
+      <div class="rail-foot">
+        <div class="ramp-readout">
+          <div class="ramp-label">active ramp <span id="rampLen"></span></div>
+          <div class="ramp-glyphs" id="rampGlyphs"></div>
+        </div>
+      </div>
+    </aside>
+
+    <button class="rail-toggle rail-toggle-left" id="toggleLeft" title="Collapse the armoury">‹</button>
+
+    <!-- ─────────── CENTRE: stage ─────────── -->
+    <section class="stage">
+      <div class="stage-bar">
+        <div class="sb-group">
+          <button class="chip" id="btnFit" title="Fit plate to view (F)">Fit</button>
+          <button class="chip" id="btnActual" title="Actual pixels (1)">1:1</button>
+          <span class="chip chip-static" id="zoomLabel">100%</span>
+        </div>
+        <div class="sb-group">
+          <button class="chip chip-toggle" id="btnCheck" title="Show a checkerboard behind transparency">Alpha</button>
+          <button class="chip chip-toggle" id="btnPixel" title="Disable smoothing when zoomed">Crisp</button>
+        </div>
+        <div class="sb-spacer"></div>
+        <div class="sb-group sb-stats">
+          <span class="stat"><b id="statGrid">—</b> cells</span>
+          <span class="stat"><b id="statSize">—</b> px</span>
+          <span class="stat"><b id="statMs">—</b> ms</span>
+        </div>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <div class="plate-wrap" id="plateWrap">
+          <canvas id="plate"></canvas>
+        </div>
+        <div class="drop-veil" id="dropVeil">
+          <div class="drop-inner">
+            <div class="drop-mark">▚</div>
+            <div class="drop-text">release to forge</div>
+            <div class="drop-hint">images · video · gif · webp · frame sequences</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="transport" id="transport">
+        <button class="tp-btn" id="btnPlay" title="Play / pause (Space)">▶</button>
+        <button class="tp-btn tp-quiet" id="btnRewind" title="Return to zero (Home)">⏮</button>
+        <div class="tp-time"><span id="tpTime">0.00</span><span class="tp-dim">/</span><span id="tpDur">8.00</span>s</div>
+        <input type="range" class="tp-scrub" id="tpScrub" min="0" max="1000" value="0" title="Scrub the timeline">
+        <label class="tp-field" title="Loop length driving the LFOs">
+          loop <input type="number" id="tpLoop" min="0.5" max="120" step="0.5" value="8"><span>s</span>
+        </label>
+        <label class="tp-field" title="Playback rate">
+          rate <input type="number" id="tpSpeed" min="0.05" max="8" step="0.05" value="1"><span>×</span>
+        </label>
+        <span class="tp-badge" id="tpBadge">static</span>
+      </div>
+    </section>
+
+    <button class="rail-toggle rail-toggle-right" id="toggleRight" title="Collapse controls">›</button>
+
+    <!-- ─────────── RIGHT: controls ─────────── -->
+    <aside class="rail rail-right" id="railRight">
+      <div class="rail-head">
+        <h2 class="rail-title"><span class="sigil">⚙</span> Controls</h2>
+        <div class="rail-head-actions">
+          <button class="mini" id="btnRandom" title="Randomise the look (R)">Roll</button>
+          <button class="mini" id="btnReset" title="Reset every parameter">Reset</button>
+        </div>
+      </div>
+      <div class="groups" id="groups"></div>
+    </aside>
+  </main>
+</div>
+
+<!-- ══════════════════════════ MODALS ══════════════════════════ -->
+
+<div class="modal-veil" id="modalVeil" hidden>
+
+  <!-- Export -->
+  <div class="modal" id="modalExport" hidden role="dialog" aria-labelledby="exportTitle">
+    <div class="modal-head">
+      <h3 id="exportTitle"><span class="sigil">⬓</span> Export</h3>
+      <button class="modal-x" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="exportTabs">
+        <button class="tab is-on" data-tab="still">Still</button>
+        <button class="tab" data-tab="text">Text &amp; vector</button>
+        <button class="tab" data-tab="motion">Motion</button>
+      </div>
+
+      <section class="tabpane is-on" data-pane="still">
+        <div class="field">
+          <label>Scale</label>
+          <select id="exScale" class="select">
+            <option value="1">1× — as rendered</option>
+            <option value="2">2×</option>
+            <option value="3">3×</option>
+            <option value="4">4×</option>
+          </select>
+        </div>
+        <p class="note" id="exStillNote">—</p>
+        <div class="modal-actions">
+          <button class="btn btn-gold" id="exPNG">Save PNG</button>
+          <button class="btn" id="exJPG">Save JPEG</button>
+          <button class="btn btn-quiet" id="exClip">Copy image</button>
+        </div>
+      </section>
+
+      <section class="tabpane" data-pane="text">
+        <label class="check"><input type="checkbox" id="exTrim" checked> Trim trailing spaces</label>
+        <p class="note">Plain text drops colour. ANSI keeps 24-bit colour for terminals.
+           SVG and HTML both stay live text you can select and restyle.</p>
+        <div class="modal-actions">
+          <button class="btn btn-gold" id="exTXT">Save .txt</button>
+          <button class="btn" id="exANSI">Save .ans</button>
+          <button class="btn" id="exSVG">Save .svg</button>
+          <button class="btn" id="exHTML">Save .html</button>
+          <button class="btn btn-quiet" id="exCopyText">Copy text</button>
+        </div>
+      </section>
+
+      <section class="tabpane" data-pane="motion">
+        <div class="field-row">
+          <div class="field">
+            <label>Format</label>
+            <select id="exFormat" class="select">
+              <option value="gif">Animated GIF — frame exact</option>
+              <option value="webm">Video (WebM) — records in real time</option>
+              <option value="zip">PNG sequence (.zip) — frame exact</option>
+              <option value="txtzip">Text sequence (.zip) — frame exact</option>
+            </select>
+          </div>
+          <div class="field field-narrow">
+            <label>FPS</label>
+            <input type="number" id="exFps" class="input" min="1" max="60" step="1" value="20">
+          </div>
+          <div class="field field-narrow">
+            <label>Seconds</label>
+            <input type="number" id="exDur" class="input" min="0.2" max="120" step="0.1" value="4">
+          </div>
+        </div>
+        <div class="field-row" id="gifOpts">
+          <div class="field field-narrow">
+            <label>GIF colours</label>
+            <select id="exColors" class="select">
+              <option value="256">256</option>
+              <option value="128">128</option>
+              <option value="64">64</option>
+              <option value="32">32</option>
+              <option value="16">16</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="exGifDither"> Dither GIF colours</label>
+        </div>
+        <p class="note" id="exMotionNote">—</p>
+        <div class="progress" id="exProgress" hidden>
+          <div class="progress-bar"><i id="exProgressBar"></i></div>
+          <div class="progress-text" id="exProgressText">—</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-gold" id="exRender">Render</button>
+          <button class="btn btn-quiet" id="exCancel" hidden>Cancel</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Text view -->
+  <div class="modal modal-wide" id="modalText" hidden role="dialog" aria-labelledby="textTitle">
+    <div class="modal-head">
+      <h3 id="textTitle"><span class="sigil">≡</span> Plain text</h3>
+      <button class="modal-x" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="text-tools">
+        <span class="note" id="textStats">—</span>
+        <div class="tt-actions">
+          <button class="btn btn-quiet" id="txtCopy">Copy</button>
+          <button class="btn btn-quiet" id="txtSave">Save .txt</button>
+        </div>
+      </div>
+      <textarea id="textOut" class="text-out" readonly spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <!-- Preset manager -->
+  <div class="modal" id="modalPresets" hidden role="dialog" aria-labelledby="presetTitle">
+    <div class="modal-head">
+      <h3 id="presetTitle"><span class="sigil">✦</span> Presets</h3>
+      <button class="modal-x" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Save current settings as</label>
+          <input type="text" id="presetName" class="input" placeholder="name this plate" maxlength="60">
+        </div>
+        <button class="btn btn-gold" id="presetSaveGo">Save</button>
+      </div>
+      <div class="preset-list" id="presetList"></div>
+      <div class="modal-actions modal-actions-split">
+        <div>
+          <button class="btn btn-quiet" id="presetImport">Import JSON…</button>
+          <input type="file" id="presetFile" accept=".json,application/json" hidden>
+        </div>
+        <div>
+          <button class="btn btn-quiet" id="presetExportAll">Export all</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animation binding editor -->
+  <div class="modal modal-narrow" id="modalAnim" hidden role="dialog" aria-labelledby="animTitle">
+    <div class="modal-head">
+      <h3 id="animTitle"><span class="sigil">∿</span> Animate <em id="animParam"></em></h3>
+      <button class="modal-x" data-close>✕</button>
+    </div>
+    <div class="modal-body" id="animBody"></div>
+  </div>
+
+  <!-- Help -->
+  <div class="modal" id="modalHelp" hidden role="dialog" aria-labelledby="helpTitle">
+    <div class="modal-head">
+      <h3 id="helpTitle"><span class="sigil">?</span> Shortcuts</h3>
+      <button class="modal-x" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <dl class="keys">
+        <dt>O</dt><dd>Open a file</dd>
+        <dt>Space</dt><dd>Play / pause</dd>
+        <dt>F</dt><dd>Fit plate to view</dd>
+        <dt>1</dt><dd>Actual pixels</dd>
+        <dt>T</dt><dd>Plain-text view</dd>
+        <dt>E</dt><dd>Export</dd>
+        <dt>S</dt><dd>Save preset</dd>
+        <dt>R</dt><dd>Roll a random look</dd>
+        <dt>[ &nbsp;]</dt><dd>Character offset −/+</dd>
+        <dt>, &nbsp;.</dt><dd>Depth −/+</dd>
+        <dt>&lt; &nbsp;&gt;</dt><dd>Columns −/+</dd>
+        <dt>I</dt><dd>Invert</dd>
+        <dt>X</dt><dd>Reverse ramp</dd>
+        <dt>↑ ↓</dt><dd>Previous / next character set</dd>
+        <dt>Esc</dt><dd>Close dialog</dd>
+        <dt>?</dt><dd>This list</dd>
+      </dl>
+      <p class="note">Drop files anywhere on the stage. Everything runs locally — nothing is uploaded.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toasts" aria-live="polite"></div>
+
+<button class="help-fab" id="btnHelp" title="Shortcuts (?)">?</button>
+
+<input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
+
+<!-- ══════════════════════════ SCRIPTS ══════════════════════════ -->
+<script src="js/charsets.js"></script>
+<script src="js/palettes.js"></script>
+<script src="js/imageproc.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/media.js"></script>
+<script src="js/params.js"></script>
+<script src="js/anim.js"></script>
+<script src="js/lib/zip.js"></script>
+<script src="js/lib/gifenc.js"></script>
+<script src="js/exporters.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

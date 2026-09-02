@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Glyphforge — self test</title>
+<style>
+  body { background:#0a0908; color:#b8ac94; font:13px/1.5 'IBM Plex Mono',Consolas,monospace; margin:0; padding:26px 30px; }
+  h1 { font:600 15px/1 Georgia,serif; letter-spacing:.22em; text-transform:uppercase; color:#e8dcc0; margin:0 0 4px; }
+  .sub { color:#554d43; font-size:11px; margin-bottom:20px; }
+  #summary { padding:11px 15px; border:1px solid rgba(201,162,39,.34); border-radius:2px; margin-bottom:18px; font-size:14px; }
+  .ok  { color:#4a9c86; }
+  .bad { color:#f08a5d; }
+  table { border-collapse:collapse; width:100%; max-width:1000px; }
+  td { padding:3px 10px 3px 0; vertical-align:top; border-bottom:1px solid rgba(201,162,39,.07); }
+  td.s { width:34px; }
+  td.n { color:#e8dcc0; width:44%; }
+  td.d { color:#7d7364; font-size:11.5px; }
+  .group { color:#c9a227; font:600 11px/1 Georgia,serif; letter-spacing:.2em; text-transform:uppercase; padding:16px 0 6px; }
+</style>
+</head>
+<body>
+<h1>Glyphforge self test</h1>
+<div class="sub">Runs the render pipeline, encoders and exporters against known inputs. Open this page from the same server as the app.</div>
+<div id="summary">running…</div>
+<table id="rows"></table>
+
+<script src="../js/charsets.js"></script>
+<script src="../js/palettes.js"></script>
+<script src="../js/imageproc.js"></script>
+<script src="../js/renderer.js"></script>
+<script src="../js/media.js"></script>
+<script src="../js/params.js"></script>
+<script src="../js/anim.js"></script>
+<script src="../js/lib/zip.js"></script>
+<script src="../js/lib/gifenc.js"></script>
+<script src="../js/exporters.js"></script>
+<script src="../js/presets.js"></script>
+<script>
+(function () {
+  'use strict';
+  var rows = document.getElementById('rows');
+  var pass = 0, fail = 0;
+
+  function group(name) {
+    var tr = rows.insertRow();
+    var td = tr.insertCell();
+    td.colSpan = 3;
+    td.className = 'group';
+    td.textContent = name;
+  }
+
+  var pending = 0;
+
+  function check(name, fn) {
+    var row = add('…', '', name, 'running');
+    var r;
+    try {
+      r = fn();
+    } catch (e) {
+      fail++;
+      set(row, '✕', 'bad', e.message);
+      return;
+    }
+    // Several checks decode a blob, which is asynchronous.
+    if (r && typeof r.then === 'function') {
+      pending++;
+      r.then(function (msg) {
+        pass++;
+        set(row, '✓', 'ok', msg == null || msg === true ? '' : String(msg));
+      }, function (e) {
+        fail++;
+        set(row, '✕', 'bad', e.message);
+      }).then(function () { pending--; summarise(); });
+    } else {
+      pass++;
+      set(row, '✓', 'ok', r == null || r === true ? '' : String(r));
+    }
+  }
+
+  function add(sym, cls, name, detail) {
+    var tr = rows.insertRow();
+    var a = tr.insertCell(); a.className = 's ' + cls; a.textContent = sym;
+    var b = tr.insertCell(); b.className = 'n'; b.textContent = name;
+    var c = tr.insertCell(); c.className = 'd'; c.textContent = detail || '';
+    return { sym: a, detail: c };
+  }
+
+  function set(row, sym, cls, detail) {
+    row.sym.className = 's ' + cls;
+    row.sym.textContent = sym;
+    row.detail.className = 'd' + (cls === 'bad' ? ' bad' : '');
+    row.detail.textContent = detail || '';
+  }
+
+  function summarise() {
+    if (pending > 0) return;
+    var s = document.getElementById('summary');
+    s.innerHTML = fail === 0
+      ? '<span class="ok">✓ all ' + pass + ' checks passed</span>'
+      : '<span class="bad">✕ ' + fail + ' failed</span> &nbsp;·&nbsp; <span class="ok">' + pass + ' passed</span>';
+  }
+
+  function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
+  function eq(a, b, msg) { if (a !== b) throw new Error((msg || 'expected') + ' ' + JSON.stringify(b) + ', got ' + JSON.stringify(a)); }
+
+  var scratch = document.createElement('canvas');
+  var sctx = scratch.getContext('2d', { willReadFrequently: true });
+  var source = SS.media.buildDefault();
+
+  /* ── character sets ───────────────────────────────────────────── */
+  group('Character sets');
+
+  check('every set resolves to at least two glyphs', function () {
+    SS.charsets.ALL.forEach(function (s) {
+      var g = SS.charsets.resolve({ setId: s.id, custom: '', injectMode: 'mix' });
+      assert(g.length >= 2, s.id + ' resolved to ' + g.length);
+      assert(g.every(function (x) { return typeof x === 'string' && x.length > 0; }), s.id + ' has an empty glyph');
+    });
+    return SS.charsets.count + ' sets across ' + SS.charsets.CATEGORIES.length + ' categories';
+  });
+
+  check('astral-plane glyphs stay intact', function () {
+    var cards = SS.charsets.BY_ID.cardsBack;
+    assert(cards, 'cards set missing');
+    // Surrogate pairs must survive as single entries, not be split in half.
+    var multi = cards.glyphs.filter(function (g) { return g.codePointAt(0) > 0xFFFF; });
+    assert(multi.length > 0, 'no astral glyphs found');
+    assert(!cards.glyphs.some(function (g) {
+      var c = g.charCodeAt(0);
+      return c >= 0xDC00 && c <= 0xDFFF;   // a lone low surrogate = split pair
+    }), 'a surrogate pair was split');
+    return multi.length + ' astral glyphs intact';
+  });
+
+  check('injection modes place glyphs correctly', function () {
+    var base = SS.charsets.BY_ID.std10.glyphs.length;
+    var app = SS.charsets.resolve({ setId: 'std10', custom: 'AB', injectMode: 'append' });
+    eq(app.length, base + 2, 'append length');
+    eq(app[app.length - 1], 'B', 'append tail');
+    var pre = SS.charsets.resolve({ setId: 'std10', custom: 'AB', injectMode: 'prepend' });
+    eq(pre[0], 'A', 'prepend head');
+    var rep = SS.charsets.resolve({ setId: 'std10', custom: 'AB', injectMode: 'replace' });
+    eq(rep.length, 2, 'replace length');
+    var mix = SS.charsets.resolve({ setId: 'std10', custom: 'AB', injectMode: 'mix' });
+    eq(mix.length, base + 2, 'mix length');
+    assert(mix.indexOf('A') > 0 && mix.indexOf('A') < mix.length - 1, 'mix should not land at an end');
+    return 'append / prepend / replace / mix';
+  });
+
+  check('injection is capped at ten glyphs', function () {
+    var r = SS.charsets.resolve({ setId: 'std10', custom: 'ABCDEFGHIJKLMNOP', injectMode: 'replace' });
+    eq(r.length, 10, 'cap');
+    return 'capped';
+  });
+
+  check('reverse flips the ramp', function () {
+    var f = SS.charsets.resolve({ setId: 'std10', custom: '', injectMode: 'mix' });
+    var r = SS.charsets.resolve({ setId: 'std10', custom: '', injectMode: 'mix', reverse: true });
+    eq(r[0], f[f.length - 1], 'first of reversed');
+    return f.join('') + '  →  ' + r.join('');
+  });
+
+  check('braille 256 set is sorted by dot count', function () {
+    var g = SS.charsets.BY_ID.brDensity.glyphs;
+    eq(g.length, 256, 'length');
+    function dots(ch) {
+      var n = ch.codePointAt(0) - 0x2800, c = 0;
+      while (n) { c += n & 1; n >>= 1; }
+      return c;
+    }
+    for (var i = 1; i < g.length; i++) {
+      assert(dots(g[i]) >= dots(g[i - 1]), 'not monotonic at ' + i);
+    }
+    return '0 → 8 dots, monotonic';
+  });
+
+  check('measured density sorting is monotonic', function () {
+    var sorted = SS.charsets.sortByDensity(Array.from(' .:-=+*#%@'), 'Consolas, monospace');
+    var m = SS.charsets.measureDensity(sorted, 'Consolas, monospace');
+    for (var i = 1; i < m.length; i++) assert(m[i].v >= m[i - 1].v, 'not monotonic at ' + i);
+    eq(sorted[0], ' ', 'space should be lightest');
+    return sorted.join('');
+  });
+
+  /* ── image processing ─────────────────────────────────────────── */
+  group('Image processing');
+
+  check('Sobel maps all four orientations to the right glyph', function () {
+    var S = 120;
+    function luma(fn) {
+      var a = new Float32Array(S * S);
+      for (var y = 0; y < S; y++) for (var x = 0; x < S; x++) a[y * S + x] = fn(x, y) ? 1 : 0;
+      return a;
+    }
+    // EDGE_SETS list glyphs as [horizontal, /, vertical, \].
+    var cases = [
+      ['vertical', function (x) { return x > S / 2; }, 2],
+      ['horizontal', function (x, y) { return y > S / 2; }, 0],
+      ['backslash', function (x, y) { return (x - y) < 0; }, 3],
+      ['slash', function (x, y) { return (x + y) > S; }, 1]
+    ];
+    var report = [];
+    cases.forEach(function (c) {
+      var r = SS.imageproc.sobelCells(luma(c[1]), S, S, 12, 12, 0.2, 0);
+      var tally = [0, 0, 0, 0], total = 0;
+      for (var i = 0; i < r.dir.length; i++) {
+        if (r.dir[i] < 0) continue;
+        tally[r.dir[i]]++; total++;
+      }
+      assert(total > 0, c[0] + ': no edges detected at all');
+      var best = tally.indexOf(Math.max.apply(null, tally));
+      eq(best, c[2], c[0] + ' should pick bucket');
+      assert(tally[best] === total, c[0] + ': mixed directions ' + tally.join('/'));
+      report.push(c[0] + '=' + Array.from('-/|\\')[best]);
+    });
+    return report.join('  ');
+  });
+
+  check('edge directions are unbiased on a circle', function () {
+    // A full circumference should hit all four directions equally. This is the
+    // regression guard for sampling the edge pass on the anisotropic cell
+    // lattice, which used to tip almost everything to horizontal.
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = 600;
+    var c = cv.getContext('2d');
+    c.fillStyle = '#000'; c.fillRect(0, 0, 600, 600);
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(300, 300, 200, 0, Math.PI * 2); c.fill();
+
+    var st = Object.assign(SS.params.defaults(), {
+      cols: 120, cellW: 7, aspectLock: true, cellRatio: 1,   // square cells
+      edgeMode: 'only', edgeSet: 'ascii', edgeStrength: 2,
+      edgeThreshold: 0.25, edgeSuper: 3, contrast: 0
+    });
+    var g = SS.renderer.render(sctx, { el: cv, width: 600, height: 600 }, st);
+    var t = { '-': 0, '/': 0, '|': 0, '\\': 0 }, n = 0;
+    for (var i = 0; i < g.chars.length; i++) {
+      var ch = g.chars[i];
+      if (ch == null) continue;
+      assert(ch in t, 'unexpected glyph ' + JSON.stringify(ch));
+      t[ch]++; n++;
+    }
+    assert(n > 200, 'only ' + n + ' edge cells found');
+    Object.keys(t).forEach(function (k) {
+      var share = t[k] / n;
+      assert(share > 0.18 && share < 0.32,
+        k + ' took ' + (share * 100).toFixed(1) + '% of the circumference');
+    });
+    eq(t['/'], t['\\'], 'diagonals should be symmetric');
+    return Object.keys(t).map(function (k) {
+      return k + ' ' + (t[k] / n * 100).toFixed(0) + '%';
+    }).join('  ');
+  });
+
+  check('flat fields produce no edges', function () {
+    var S = 60;
+    var flat = new Float32Array(S * S).fill(0.5);
+    var r = SS.imageproc.sobelCells(flat, S, S, 10, 10, 0.2, 0);
+    var n = 0;
+    for (var i = 0; i < r.dir.length; i++) if (r.dir[i] >= 0) n++;
+    eq(n, 0, 'edge cells on a flat field');
+    return 'no false positives';
+  });
+
+  check('quantize respects the level count', function () {
+    var n = 400;
+    var luma = new Float32Array(n);
+    for (var i = 0; i < n; i++) luma[i] = i / (n - 1);
+    ['none', 'floyd', 'atkinson', 'jarvis', 'stucki', 'burkes', 'sierra',
+     'bayer2', 'bayer4', 'bayer8', 'bayer16', 'noise'].forEach(function (mode) {
+      var out = SS.imageproc.quantize(luma, 20, 20, 6, mode, 1);
+      for (var k = 0; k < out.length; k++) {
+        assert(out[k] >= 0 && out[k] <= 5, mode + ' produced level ' + out[k] + ' outside 0..5');
+      }
+    });
+    return '12 algorithms stay inside 0..depth-1';
+  });
+
+  check('quantize is monotonic without dithering', function () {
+    var n = 256;
+    var luma = new Float32Array(n);
+    for (var i = 0; i < n; i++) luma[i] = i / (n - 1);
+    var out = SS.imageproc.quantize(luma, n, 1, 8, 'none', 1);
+    for (var k = 1; k < n; k++) assert(out[k] >= out[k - 1], 'ramp went backwards at ' + k);
+    eq(out[0], 0, 'darkest level');
+    eq(out[n - 1], 7, 'lightest level');
+    return 'black → 0, white → depth-1';
+  });
+
+  check('tone controls move luminance the right way', function () {
+    function mid(patch) {
+      var img = new ImageData(new Uint8ClampedArray([128, 128, 128, 255]), 1, 1);
+      SS.imageproc.applyTone(img, Object.assign(SS.params.defaults(), { contrast: 0 }, patch));
+      return img.data[0];
+    }
+    var base = mid({});
+    assert(mid({ brightness: 0.3 }) > base, 'brightness up should brighten');
+    assert(mid({ brightness: -0.3 }) < base, 'brightness down should darken');
+    assert(mid({ exposure: 1 }) > base, 'exposure up should brighten');
+    assert(mid({ invert: true }) < base, 'invert should darken mid-grey up');
+    eq(mid({ invert: true }), 255 - base, 'invert is exact');
+    assert(mid({ gamma: 2 }) > base, 'gamma > 1 lifts midtones');
+    return 'brightness / exposure / gamma / invert';
+  });
+
+  check('alpha is carried into luminance', function () {
+    var img = new ImageData(new Uint8ClampedArray([255, 255, 255, 0, 255, 255, 255, 255]), 2, 1);
+    var l = SS.imageproc.toLuma(img, null, 'rec709');
+    eq(l[0], 0, 'transparent white');
+    eq(l[1], 1, 'opaque white');
+    return 'transparent pixels read as empty';
+  });
+
+  /* ── renderer ─────────────────────────────────────────────────── */
+  group('Renderer');
+
+  check('grid geometry preserves source aspect', function () {
+    var st = Object.assign(SS.params.defaults(), { cols: 100, cellW: 8, aspectLock: true, cellRatio: 2 });
+    var g = SS.renderer.computeGeometry(st, 1000, 500);      // 2:1 source
+    eq(g.cols, 100, 'cols');
+    // rows = cols * (srcH/srcW) * (cellW/cellH) = 100 * .5 * .5 = 25
+    eq(g.rows, 25, 'rows');
+    eq(g.width / g.height, 2, 'output aspect should match the source');
+    return g.cols + '×' + g.rows + ' cells → ' + g.width + '×' + g.height + ' px';
+  });
+
+  check('cell ceiling caps runaway grids', function () {
+    var st = Object.assign(SS.params.defaults(), { cols: 100000, cellW: 1, cellRatio: 1 });
+    var g = SS.renderer.computeGeometry(st, 1000, 1000);
+    assert(g.cols * g.rows <= SS.renderer.MAX_CELLS, 'exceeded ceiling: ' + g.cols * g.rows);
+    return 'clamped to ' + g.cols + '×' + g.rows;
+  });
+
+  check('renders every character set without throwing', function () {
+    var st = Object.assign(SS.params.defaults(), { cols: 40, cellW: 6 });
+    SS.charsets.ALL.forEach(function (s) {
+      st.setId = s.id;
+      st.depth = Math.min(12, s.glyphs.length);
+      var g = SS.renderer.render(sctx, source, st);
+      assert(g, s.id + ' returned no grid');
+      eq(g.chars.length, g.cols * g.rows, s.id + ' grid size');
+    });
+    return SS.charsets.count + ' sets rendered';
+  });
+
+  check('renders every colour mode, palette and gradient', function () {
+    var st = Object.assign(SS.params.defaults(), { cols: 30, cellW: 6 });
+    var n = 0;
+    ['mono', 'source', 'palette', 'gradient', 'duotone'].forEach(function (m) {
+      st.colorMode = m; SS.renderer.render(sctx, source, st); n++;
+    });
+    st.colorMode = 'palette';
+    SS.palettes.PALETTES.forEach(function (p) { st.paletteId = p.id; SS.renderer.render(sctx, source, st); n++; });
+    st.colorMode = 'gradient';
+    SS.palettes.GRADIENTS.forEach(function (p) { st.gradientId = p.id; SS.renderer.render(sctx, source, st); n++; });
+    return n + ' colour configurations';
+  });
+
+  check('every factory preset renders', function () {
+    SS.presets.FACTORY.forEach(function (p) {
+      var ex = SS.presets.expand(p);
+      var st = Object.assign(ex.state, { cols: 50 });
+      var g = SS.renderer.render(sctx, source, st);
+      assert(g, p.name + ' produced no grid');
+    });
+    return SS.presets.FACTORY.length + ' presets';
+  });
+
+  check('a black source picks the darkest glyph everywhere', function () {
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    var c = cv.getContext('2d');
+    c.fillStyle = '#000'; c.fillRect(0, 0, 64, 64);
+    var st = Object.assign(SS.params.defaults(), {
+      cols: 20, cellW: 6, setId: 'std10', depth: 10,
+      contrast: 0, dither: 'none', edgeMode: 'off'
+    });
+    var g = SS.renderer.render(sctx, { el: cv, width: 64, height: 64 }, st);
+    var glyphs = SS.charsets.BY_ID.std10.glyphs;
+    for (var i = 0; i < g.chars.length; i++) eq(g.chars[i], glyphs[0], 'cell ' + i);
+    return 'all cells = "' + glyphs[0].replace(' ', '␠') + '"';
+  });
+
+  check('a white source picks the densest glyph everywhere', function () {
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    var c = cv.getContext('2d');
+    c.fillStyle = '#fff'; c.fillRect(0, 0, 64, 64);
+    var st = Object.assign(SS.params.defaults(), {
+      cols: 20, cellW: 6, setId: 'std10', depth: 10,
+      contrast: 0, dither: 'none', edgeMode: 'off'
+    });
+    var g = SS.renderer.render(sctx, { el: cv, width: 64, height: 64 }, st);
+    var glyphs = SS.charsets.BY_ID.std10.glyphs;
+    for (var i = 0; i < g.chars.length; i++) eq(g.chars[i], glyphs[glyphs.length - 1], 'cell ' + i);
+    return 'all cells = "' + glyphs[glyphs.length - 1] + '"';
+  });
+
+  check('character offset rotates the ramp', function () {
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = 32;
+    var c = cv.getContext('2d');
+    c.fillStyle = '#000'; c.fillRect(0, 0, 32, 32);
+    var base = Object.assign(SS.params.defaults(), {
+      cols: 8, cellW: 6, setId: 'std10', depth: 10, contrast: 0, dither: 'none', edgeMode: 'off'
+    });
+    var glyphs = SS.charsets.BY_ID.std10.glyphs;
+    var g0 = SS.renderer.render(sctx, { el: cv, width: 32, height: 32 }, base);
+    eq(g0.chars[0], glyphs[0], 'offset 0');
+    var g3 = SS.renderer.render(sctx, { el: cv, width: 32, height: 32 }, Object.assign({}, base, { offset: 3 }));
+    eq(g3.chars[0], glyphs[3], 'offset 3');
+    var gNeg = SS.renderer.render(sctx, { el: cv, width: 32, height: 32 }, Object.assign({}, base, { offset: -1 }));
+    eq(gNeg.chars[0], glyphs[glyphs.length - 1], 'offset -1 should wrap');
+    return 'wraps in both directions';
+  });
+
+  check('transparent pixels leave cells empty', function () {
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = 32;   // never painted, so fully transparent
+    var st = Object.assign(SS.params.defaults(), { cols: 10, cellW: 6, alphaThreshold: 0.5 });
+    var g = SS.renderer.render(sctx, { el: cv, width: 32, height: 32 }, st);
+    for (var i = 0; i < g.chars.length; i++) eq(g.chars[i], null, 'cell ' + i);
+    return 'all cells empty';
+  });
+
+  /* ── animation ────────────────────────────────────────────────── */
+  group('Animation');
+
+  check('every waveform stays within ±1', function () {
+    Object.keys(SS.anim.WAVES).forEach(function (k) {
+      var w = SS.anim.WAVES[k];
+      for (var i = 0; i <= 400; i++) {
+        var v = w(i / 100, 3);
+        assert(v >= -1.0001 && v <= 1.0001, k + ' returned ' + v);
+        assert(isFinite(v), k + ' returned a non-finite value');
+      }
+    });
+    return Object.keys(SS.anim.WAVES).length + ' waveforms';
+  });
+
+  check('LFOs never push a parameter out of range', function () {
+    var st = SS.params.defaults();
+    SS.params.animatable().forEach(function (p) {
+      var b = {};
+      b[p.key] = { enabled: true, wave: 'sine', rate: 1, amount: 1, phase: 0, mode: 'sweep', seed: 1 };
+      for (var t = 0; t < 4; t += 0.05) {
+        var out = SS.anim.apply(st, b, t);
+        var max = p.dynamicMax ? p.dynamicMax(st) : p.max;
+        assert(out[p.key] >= p.min && out[p.key] <= max,
+          p.key + ' hit ' + out[p.key] + ' outside [' + p.min + ',' + max + ']');
+      }
+    });
+    return SS.params.animatable().length + ' animatable parameters';
+  });
+
+  check('LFOs leave the base state untouched', function () {
+    var st = SS.params.defaults();
+    var before = st.gamma;
+    SS.anim.apply(st, { gamma: { enabled: true, wave: 'sine', rate: 1, amount: 1, phase: 0.25, mode: 'add', seed: 1 } }, 1.3);
+    eq(st.gamma, before, 'base state mutated');
+    return 'base state is immutable';
+  });
+
+  /* ── encoders ─────────────────────────────────────────────────── */
+  group('Encoders');
+
+  check('ZIP round-trips bytes and CRCs', function () {
+    var enc = new TextEncoder();
+    var payload = enc.encode('hello ▚ glyphforge\nsecond line');
+    var blob = SS.zip.build([
+      { name: 'a.txt', data: payload },
+      { name: 'nested/b.bin', data: new Uint8Array([0, 255, 128, 1, 2, 3]) }
+    ]);
+    return blob.arrayBuffer().then(function (ab) {
+      var u8 = new Uint8Array(ab), dv = new DataView(ab);
+      eq(dv.getUint32(0, true), 0x04034b50, 'local header signature');
+      eq(dv.getUint32(u8.length - 22, true), 0x06054b50, 'end of central directory signature');
+      eq(dv.getUint16(u8.length - 22 + 10, true), 2, 'entry count');
+      var nameLen = dv.getUint16(26, true), dataLen = dv.getUint32(18, true);
+      eq(new TextDecoder().decode(u8.subarray(30, 30 + nameLen)), 'a.txt', 'first name');
+      eq(dv.getUint32(14, true), SS.zip.crc32(payload), 'crc');
+      eq(new TextDecoder().decode(u8.subarray(30 + nameLen, 30 + nameLen + dataLen)),
+         'hello ▚ glyphforge\nsecond line', 'payload');
+      return blob.size + ' bytes, 2 entries';
+    });
+  });
+
+  check('GIF encoder emits a decodable animation', function () {
+    var st = Object.assign(SS.params.defaults(), { cols: 24, cellW: 6, colorMode: 'gradient' });
+    var frames = [];
+    for (var i = 0; i < 3; i++) {
+      st.offset = i * 3;
+      SS.renderer.render(sctx, source, st);
+      frames.push(sctx.getImageData(0, 0, scratch.width, scratch.height).data);
+    }
+    // Snapshot the size now: later checks reuse `scratch` and will resize it
+    // before these async assertions run.
+    var W = scratch.width, H = scratch.height;
+    var pal = SS.gifenc.quantize(frames, 64);
+    assert(pal.length / 3 <= 64, 'palette overflowed: ' + pal.length / 3);
+    var enc = new SS.gifenc.Encoder(W, H, { loop: 0, palette: pal });
+    frames.forEach(function (f) { enc.addFrame(f, 100); });
+    var blob = enc.finish();
+
+    return blob.arrayBuffer().then(function (ab) {
+      var u8 = new Uint8Array(ab), dv = new DataView(ab);
+      eq(new TextDecoder().decode(u8.subarray(0, 6)), 'GIF89a', 'header');
+      eq(dv.getUint16(6, true), W, 'logical width');
+      eq(dv.getUint16(8, true), H, 'logical height');
+      eq(u8[u8.length - 1], 0x3B, 'trailer');
+
+      if (typeof ImageDecoder !== 'function') return 'encoded ' + blob.size + ' bytes (no ImageDecoder to verify frames)';
+      var dec = new ImageDecoder({ data: ab, type: 'image/gif' });
+      return dec.tracks.ready.then(function () {
+        return dec.completed;
+      }).then(function () {
+        var track = dec.tracks.selectedTrack;
+        eq(track.frameCount, 3, 'frame count');
+        assert(track.animated, 'should be animated');
+        return dec.decode({ frameIndex: 1 });
+      }).then(function (r) {
+        eq(r.image.displayWidth, W, 'decoded width');
+        eq(r.image.duration, 100000, 'frame duration (µs)');
+        r.image.close();
+        dec.close();
+        return blob.size + ' bytes, 3 frames verified';
+      });
+    });
+  });
+
+  check('GIF quantiser keeps an exact palette when it fits', function () {
+    // 4 distinct colours must survive untouched.
+    var px = new Uint8ClampedArray(4 * 4);
+    [[255, 0, 0], [0, 255, 0], [0, 0, 255], [17, 17, 17]].forEach(function (c, i) {
+      px[i * 4] = c[0]; px[i * 4 + 1] = c[1]; px[i * 4 + 2] = c[2]; px[i * 4 + 3] = 255;
+    });
+    var pal = SS.gifenc.quantize(px, 256, 1);
+    eq(pal.length / 3, 4, 'palette size');
+    return '4 colours in, 4 colours out';
+  });
+
+  /* ── media ────────────────────────────────────────────────────── */
+  group('Media');
+
+  check('an animated GIF loads back as a frame sequence', function () {
+    if (!SS.media.hasImageDecoder()) return 'skipped — no ImageDecoder in this browser';
+
+    // Encode a 5-frame GIF with our own encoder, then load it through the real
+    // media path. Guards the ImageDecoder handshake: reading selectedTrack
+    // before tracks.ready silently turns every animation into a still.
+    var cv = document.createElement('canvas');
+    cv.width = 120; cv.height = 90;
+    var c = cv.getContext('2d', { willReadFrequently: true });
+    var colours = ['#f00', '#0f0', '#00f', '#ff0', '#0ff'];
+    var datas = [];
+    for (var i = 0; i < 5; i++) {
+      c.fillStyle = '#000'; c.fillRect(0, 0, 120, 90);
+      c.fillStyle = colours[i]; c.fillRect(i * 20, 20, 40, 50);
+      datas.push(c.getImageData(0, 0, 120, 90).data);
+    }
+    var enc = new SS.gifenc.Encoder(120, 90, { loop: 0, palette: SS.gifenc.quantize(datas, 32) });
+    datas.forEach(function (d) { enc.addFrame(d, 80); });
+    var file = new File([enc.finish()], 'roundtrip.gif', { type: 'image/gif' });
+
+    return SS.media.loadFiles([file]).then(function (src) {
+      eq(src.kind, 'animation', 'source kind');
+      eq(src.frameCount, 5, 'frame count');
+      eq(src.width + 'x' + src.height, '120x90', 'dimensions');
+      assert(Math.abs(src.duration - 0.4) < 0.01, 'duration was ' + src.duration);
+      assert(typeof src.advance === 'function', 'sequence sources must expose advance()');
+
+      // Each frame must carry its own colour block in the right place.
+      var probe = document.createElement('canvas');
+      probe.width = 120; probe.height = 90;
+      var pc = probe.getContext('2d', { willReadFrequently: true });
+      var expect = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0], [0, 255, 255]];
+      for (var k = 0; k < 5; k++) {
+        src.frameIndex = k;
+        pc.clearRect(0, 0, 120, 90);
+        pc.drawImage(src.el, 0, 0);
+        var d = pc.getImageData(30 + k * 20, 45, 1, 1).data;
+        eq(d[0] + ',' + d[1] + ',' + d[2], expect[k].join(','), 'frame ' + k + ' colour');
+      }
+
+      // The clock must land on the right frame.
+      src.play(); src.time = 0; src.advance(0.25);
+      eq(src.frameIndex, 3, 'frame at t=0.25s (80ms frames)');
+
+      src.dispose();
+      return '5 frames, colours and timing verified';
+    });
+  });
+
+  /* ── exporters ────────────────────────────────────────────────── */
+  group('Exporters');
+
+  var grid = (function () {
+    var st = Object.assign(SS.params.defaults(), { cols: 40, cellW: 7, colorMode: 'palette', paletteId: 'pico8' });
+    window.__st = st;
+    return SS.renderer.render(sctx, source, st);
+  })();
+
+  check('text output has one line per row', function () {
+    var txt = SS.renderer.gridToText(grid, false);
+    var lines = txt.split('\n');
+    eq(lines.length, grid.rows, 'line count');
+    lines.forEach(function (l, i) {
+      eq(Array.from(l).length, grid.cols, 'line ' + i + ' width');
+    });
+    return grid.cols + '×' + grid.rows;
+  });
+
+  check('SVG is well-formed', function () {
+    var svg = SS.exporters.toSVG(grid, window.__st);
+    var doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    assert(!doc.querySelector('parsererror'), 'XML parse error');
+    assert(doc.querySelectorAll('text').length > 0, 'no text runs');
+    eq(doc.documentElement.getAttribute('width'), String(grid.width + (window.__st.padding | 0) * 2), 'width');
+    return svg.length + ' bytes, ' + doc.querySelectorAll('text').length + ' runs';
+  });
+
+  check('SVG escapes markup characters', function () {
+    var st = Object.assign({}, window.__st, { setId: 'punct', customChars: '<&>"', injectMode: 'append', depth: 12 });
+    var g = SS.renderer.render(sctx, source, st);
+    var svg = SS.exporters.toSVG(g, st);
+    assert(svg.indexOf('<text') >= 0, 'no text elements');
+    var doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    assert(!doc.querySelector('parsererror'), 'raw < or & leaked into the SVG');
+    return 'angle brackets and ampersands escaped';
+  });
+
+  check('HTML is well-formed and keeps every row', function () {
+    var html = SS.exporters.toHTML(grid, window.__st);
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var pre = doc.querySelector('pre');
+    assert(pre, 'no <pre>');
+    eq(pre.textContent.split('\n').length, grid.rows, 'row count');
+    return html.length + ' bytes';
+  });
+
+  check('ANSI carries 24-bit colour and resets', function () {
+    var ansi = SS.exporters.toANSI(grid, true, '#0a0908');
+    assert(ansi.indexOf('[38;2;') > 0, 'no foreground colour escapes');
+    assert(ansi.indexOf('[48;2;') === 0, 'no background escape at the start');
+    assert(/\[0m\n$/.test(ansi), 'missing trailing reset');
+    return (ansi.match(/\[38;2;/g) || []).length + ' colour changes';
+  });
+
+  /* ── presets ──────────────────────────────────────────────────── */
+  group('Presets');
+
+  check('preset JSON round-trips', function () {
+    var st = SS.params.defaults();
+    st.setId = 'runes'; st.depth = 14; st.fgColor = '#ff8800';
+    var b = { gamma: SS.anim.defaultBinding() };
+    var json = SS.presets.toJSON('round trip', st, b);
+    var back = SS.presets.expand(JSON.parse(json));
+    eq(back.state.setId, 'runes', 'setId');
+    eq(back.state.depth, 14, 'depth');
+    eq(back.state.fgColor, '#ff8800', 'colour');
+    assert(back.bindings.gamma && back.bindings.gamma.enabled, 'binding lost');
+    return 'state and bindings survive';
+  });
+
+  check('unknown and malformed keys are rejected', function () {
+    var s = SS.params.sanitize({
+      setId: 'not-a-real-set',
+      depth: 'banana',
+      invert: 'yes',
+      fgColor: 'javascript:alert(1)',
+      __proto__hack: 'x',
+      cols: 999999
+    });
+    eq(s.setId, SS.params.BY_KEY.setId.def, 'bad select falls back to default');
+    eq(s.depth, SS.params.BY_KEY.depth.def, 'non-numeric falls back to default');
+    eq(s.invert, true, 'truthy string coerces to boolean');
+    eq(s.fgColor, SS.params.BY_KEY.fgColor.def, 'non-hex colour rejected');
+    assert(!('__proto__hack' in s) || SS.params.BY_KEY.__proto__hack === undefined, 'unknown key leaked');
+    eq(s.cols, 999999, 'numbers pass through (clamped later by geometry)');
+    return 'malformed input cannot poison state';
+  });
+
+  /* ── done ─────────────────────────────────────────────────────── */
+  summarise();
+})();
+</script>
+</body>
+</html>

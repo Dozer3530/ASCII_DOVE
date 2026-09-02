@@ -1,0 +1,12 @@
+# Normalise line endings in the repo; check out native on each platform.
+* text=auto eol=lf
+
+# Binary assets, should they ever be added.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp4 binary
+*.webm binary
+*.woff2 binary

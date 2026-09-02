@@ -1,0 +1,22 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node — nothing is needed to run Glyphforge, but keep future tooling out
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Claude Code: launch.json is shared project config, local settings are not
+.claude/settings.local.json
+
+# Scratch space used while testing
+.tmp-samples/
+scratch/

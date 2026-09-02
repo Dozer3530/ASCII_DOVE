@@ -71,7 +71,9 @@
     if (initModals._onClose) initModals._onClose(was);
   }
 
-  function isModalOpen() { return !!openId; }
+  // Returns the open modal's id (truthy) or null, so callers can both test
+  // "is anything open" and ask which one.
+  function isModalOpen() { return openId; }
 
   /* ───────────────────────── glyph ramp preview ─────────────────────────
      Draws the active tone response of a character set: luminance sweeps left

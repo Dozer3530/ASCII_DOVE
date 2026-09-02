@@ -49,12 +49,14 @@
 
     animEditor = UI.buildAnimEditor({
       onChange: function (key, b) {
+        beginChange(false);
         bindings[key] = b;
         if (!b.enabled) delete bindings[key];
         syncUI();
         requestRender();
       },
       onClear: function (key) {
+        beginChange(true);
         delete bindings[key];
         syncUI();
         requestRender();
@@ -99,6 +101,12 @@
   function setParam(key, value) {
     var p = P.BY_KEY[key];
     if (!p) return;
+
+    // Sliders, colour pickers and text fields all fire continuously while
+    // you work them, so those coalesce into one undo step; a select or a
+    // toggle is a single deliberate act and commits on its own.
+    beginChange(p.type === 'select' || p.type === 'toggle');
+
     state[key] = P.coerce(key, value);
 
     // Depth must stay inside the (possibly new) ramp length.
@@ -125,6 +133,103 @@
     }, 700);
   }
 
+  /* ───────────────────────── history ─────────────────────────
+     Undo covers the whole parameter set plus the LFO bindings, since those
+     are the two things a preset load or a Roll replaces wholesale.
+
+     Dragging a slider fires dozens of changes a second, so continuous edits
+     are coalesced: the state from *before* the first change is held aside and
+     only committed once the edits stop. Discrete changes (a select, a toggle,
+     a preset load) commit straight away.
+     ------------------------------------------------------------------------- */
+
+  var HISTORY_LIMIT = 80;
+  var COALESCE_MS = 450;
+  var history = { past: [], future: [], pending: null, timer: null };
+
+  function snapshot() {
+    var snap = {
+      state: Object.assign({}, state),
+      bindings: JSON.parse(JSON.stringify(bindings))
+    };
+    snap.key = JSON.stringify(snap.state) + '|' + JSON.stringify(snap.bindings);
+    return snap;
+  }
+
+  function restore(snap) {
+    state = Object.assign({}, snap.state);
+    bindings = JSON.parse(JSON.stringify(snap.bindings));
+  }
+
+  function pushHistory(snap) {
+    var last = history.past[history.past.length - 1];
+    if (last && last.key === snap.key) return;      // nothing actually moved
+    history.past.push(snap);
+    if (history.past.length > HISTORY_LIMIT) history.past.shift();
+    history.future.length = 0;                       // a new edit forks the timeline
+  }
+
+  /**
+   * Call immediately BEFORE mutating state.
+   * @param {boolean} immediate  true for discrete edits, false to coalesce.
+   */
+  function beginChange(immediate) {
+    if (!history.pending) history.pending = snapshot();
+    clearTimeout(history.timer);
+    if (immediate) commitPending();
+    else history.timer = setTimeout(commitPending, COALESCE_MS);
+  }
+
+  function commitPending() {
+    clearTimeout(history.timer);
+    if (!history.pending) return;
+    pushHistory(history.pending);
+    history.pending = null;
+    updateHistoryButtons();
+  }
+
+  /** Record a restore point right now, for a wholesale replacement. */
+  function recordNow() {
+    commitPending();
+    pushHistory(snapshot());
+    updateHistoryButtons();
+  }
+
+  function undo() {
+    commitPending();
+    if (!history.past.length) { UI.toast('Nothing left to undo'); return; }
+    history.future.push(snapshot());
+    restore(history.past.pop());
+    afterHistoryMove('Undo');
+  }
+
+  function redo() {
+    commitPending();
+    if (!history.future.length) { UI.toast('Nothing to redo'); return; }
+    history.past.push(snapshot());
+    restore(history.future.pop());
+    afterHistoryMove('Redo');
+  }
+
+  function afterHistoryMove(label) {
+    // The LFO editor builds its controls from the binding it was opened with,
+    // so close it rather than let the dialog and the state disagree.
+    if (UI.isModalOpen() === 'modalAnim') UI.closeModal();
+    view.userZoomed = false;
+    syncUI();
+    requestRender();
+    scheduleSessionSave();
+    updateHistoryButtons();
+    UI.toast(label + ' — ' + history.past.length + ' back, ' + history.future.length + ' forward');
+  }
+
+  function updateHistoryButtons() {
+    var u = $('#btnUndo'), r = $('#btnRedo');
+    if (!u || !r) return;
+    u.disabled = history.past.length === 0 && !history.pending;
+    r.disabled = history.future.length === 0;
+  }
+
   function syncUI() {
     controls.sync(state, bindings, lastAnimState);
     armoury.sync(state);
@@ -135,6 +240,7 @@
     animEditor.open(key, bindings[key] || SS.anim.defaultBinding());
     // Opening the editor arms the LFO so you hear it immediately.
     if (!bindings[key]) {
+      beginChange(true);
       bindings[key] = SS.anim.defaultBinding();
       syncUI();
       requestRender();
@@ -408,6 +514,7 @@
     $('#btnHelp').addEventListener('click', function () { UI.openModal('modalHelp'); });
 
     $('#btnReset').addEventListener('click', function () {
+      recordNow();
       state = P.defaults();
       bindings = {};
       syncUI();
@@ -416,6 +523,8 @@
     });
 
     $('#btnRandom').addEventListener('click', roll);
+    $('#btnUndo').addEventListener('click', undo);
+    $('#btnRedo').addEventListener('click', redo);
   }
 
   /* ───────────────────────── transport ───────────────────────── */
@@ -494,6 +603,7 @@
   function rnd(a, b) { return a + Math.random() * (b - a); }
 
   function roll() {
+    recordNow();
     var set = pick(SS.charsets.ALL);
     state.setId = set.id;
     var len = set.glyphs.length;
@@ -813,6 +923,7 @@
   }
 
   function applyPreset(preset) {
+    recordNow();
     var ex = SS.presets.expand(preset);
     state = ex.state;
     bindings = ex.bindings;
@@ -951,6 +1062,19 @@
         if (UI.isModalOpen()) { UI.closeModal(); e.preventDefault(); }
         return;
       }
+      // Undo/redo are checked before the modifier guard below, and stay live
+      // while a dialog is open — an editor is expected to always take Ctrl+Z.
+      var mod = (e.ctrlKey || e.metaKey) && !e.altKey;
+      if (mod && !isTyping(e)) {
+        var lower = e.key.toLowerCase();
+        if (lower === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redo(); else undo();
+          return;
+        }
+        if (lower === 'y') { e.preventDefault(); redo(); return; }
+      }
+
       if (isTyping(e) || e.ctrlKey || e.metaKey || e.altKey) return;
       if (UI.isModalOpen()) return;
 

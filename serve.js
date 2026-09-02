@@ -16,7 +16,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 
 const PORT = parseInt(process.argv[2], 10) || 8777;
 const ROOT = __dirname;
@@ -39,9 +38,11 @@ const TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  // WHATWG URL rather than the legacy url.parse, which Node now warns about.
+  // The base is a throwaway — only the path matters.
   let pathname;
   try {
-    pathname = decodeURIComponent(url.parse(req.url).pathname);
+    pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   } catch (e) {
     res.writeHead(400).end('Bad request');
     return;
@@ -71,7 +72,8 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log('\n  Glyphforge → http://localhost:' + PORT + '\n');
+  // ASCII only: the Windows console's default codepage mangles arrows.
+  console.log('\n  Glyphforge -> http://localhost:' + PORT + '\n');
   console.log('  Serving ' + ROOT);
   console.log('  Ctrl+C to stop.\n');
 });

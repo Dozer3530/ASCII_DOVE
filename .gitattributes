@@ -1,6 +1,12 @@
 # Normalise line endings in the repo; check out native on each platform.
 * text=auto eol=lf
 
+# Windows scripts must keep CRLF — cmd.exe can mis-parse labels and goto
+# targets in a batch file that only has LF endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
 # Binary assets, should they ever be added.
 *.png binary
 *.jpg binary

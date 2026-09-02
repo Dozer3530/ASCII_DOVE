@@ -3,7 +3,20 @@
 A studio for turning images, video and live capture into glyph art.
 
 Everything runs in the browser, locally. No build step, no dependencies, no
-uploads. Open `index.html` and it works.
+uploads.
+
+![Classic ASCII with Sobel edge strokes picked out in gold](docs/hero.png)
+
+*The built-in test chart at 170 columns: 70-level ASCII ramp for tone, with the
+edge pass tracing contours in gold. Every character is real, selectable text if
+you export it as `.txt`, `.svg` or `.html`.*
+
+## Run it
+
+**Windows** — double-click **`run.bat`**. It starts the local server and opens
+your browser.
+
+**Anything else:**
 
 ```bash
 node serve.js
@@ -11,9 +24,18 @@ node serve.js
 
 Then open **http://localhost:8777**.
 
-Double-clicking `index.html` also works, but the camera, screen capture and
-"copy image to clipboard" features are only offered by browsers on
-`http://localhost`, so the server is the better way in.
+Double-clicking `index.html` works too, but browsers only offer the camera,
+screen capture and "copy image to clipboard" features over `http://localhost`,
+so the server is the better way in.
+
+---
+
+## The same source, six treatments
+
+![Six presets applied to the same image](docs/gallery.png)
+
+Each of those is one click from the preset menu, and every parameter behind
+them stays editable.
 
 ---
 
@@ -58,9 +80,18 @@ webcam, and screen capture.
 with rate, amount, phase and seed, riding on top of your slider value or
 sweeping the full range.
 
+![Character offset animated on a saw wave](docs/motion.gif)
+
+*Nothing here is moving except the character offset, sweeping the katakana ramp
+on a saw wave. The image is a still.*
+
 **Export** — PNG, JPEG, plain text, ANSI (24-bit colour for terminals), SVG and
 HTML (both stay live, selectable text), animated GIF, WebM video, and ZIP
 archives of PNG or text frame sequences.
+
+**Undo/redo** across every parameter and LFO binding, 80 steps deep. A slider
+drag collapses into a single step, and a stray <kbd>R</kbd> (Roll) or Reset is
+always recoverable.
 
 **Presets** — 16 built in, plus save/load/import/export as JSON. Your working
 state is restored when you come back.
@@ -78,12 +109,15 @@ state is restored when you come back.
 5. <kbd>E</kbd> to export.
 
 Press <kbd>R</kbd> to roll a random treatment — it changes the look but keeps
-your framing.
+your framing, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> puts it back if you liked what
+you had.
 
 ### Shortcuts
 
 | | |
 |---|---|
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd> | undo |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | redo |
 | <kbd>O</kbd> | open a file |
 | <kbd>Space</kbd> | play / pause |
 | <kbd>F</kbd> / <kbd>1</kbd> | fit to view / actual pixels |
@@ -146,9 +180,11 @@ or the PNG sequence.
 
 ```
 index.html          markup and script order
+run.bat             Windows launcher: starts the server, opens the browser
 serve.js            dependency-free static server
+docs/               README images
 css/app.css         all styling
-tests/test.html     36 self-tests — open it in a browser
+tests/test.html     37 self-tests — open it in a browser
 js/
   charsets.js       the 101 sets, injection, measured density sorting
   palettes.js       27 palettes, 14 gradients, colour maths

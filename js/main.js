@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — main.js
+   ASCII_DOVE — main.js
    Application controller: state, the render loop, the viewport, input,
    presets and the export dialogs.
    ========================================================================== */
@@ -93,7 +93,7 @@
     requestRender();
     loop();
 
-    UI.toast('Glyphforge ready — drop an image anywhere, or press ? for keys', 'good', 4200);
+    UI.toast('ASCII_DOVE ready — drop an image anywhere, or press ? for keys', 'good', 4200);
   }
 
   /* ───────────────────────── parameter plumbing ───────────────────────── */
@@ -661,7 +661,7 @@
     });
     $('#txtSave').addEventListener('click', function () {
       SS.exporters.save(new Blob([$('#textOut').value], { type: 'text/plain;charset=utf-8' }),
-        'glyphforge-' + SS.exporters.stamp() + '.txt');
+        'ascii_dove-' + SS.exporters.stamp() + '.txt');
     });
   }
 
@@ -903,15 +903,33 @@
 
   /* ───────────────────────── presets ───────────────────────── */
 
+  /** Bucket the factory presets, ordered by GROUP_ORDER with unknowns last. */
+  function groupFactory() {
+    var byGroup = {}, seen = [];
+    SS.presets.FACTORY.forEach(function (p) {
+      var g = p.group || 'Other';
+      if (!byGroup[g]) { byGroup[g] = []; seen.push(g); }
+      byGroup[g].push(p);
+    });
+    var known = (SS.presets.GROUP_ORDER || []).filter(function (g) { return byGroup[g]; });
+    var rest = seen.filter(function (g) { return known.indexOf(g) < 0; }).sort();
+    return { order: known.concat(rest), byGroup: byGroup };
+  }
+
   function refreshPresetSelect() {
     var sel = $('#presetSelect');
     sel.innerHTML = '';
     sel.appendChild(new Option('— presets —', ''));
 
-    var gF = document.createElement('optgroup');
-    gF.label = 'Factory';
-    SS.presets.FACTORY.forEach(function (p) { gF.appendChild(new Option(p.name, 'F:' + p.name)); });
-    sel.appendChild(gF);
+    // Forty-plus presets in one flat list is unusable, so group them.
+    var grouped = groupFactory();
+    grouped.order.forEach(function (g) {
+      var byGroup = grouped.byGroup;
+      var og = document.createElement('optgroup');
+      og.label = g;
+      byGroup[g].forEach(function (p) { og.appendChild(new Option(p.name, 'F:' + p.name)); });
+      sel.appendChild(og);
+    });
 
     var user = SS.presets.userPresets();
     if (user.length) {
@@ -1036,7 +1054,9 @@
     }
 
     section('Yours', SS.presets.userPresets(), true);
-    section('Factory', SS.presets.FACTORY, false);
+
+    var grouped = groupFactory();
+    grouped.order.forEach(function (g) { section(g, grouped.byGroup[g], false); });
   }
 
   /* ───────────────────────── keyboard ───────────────────────── */

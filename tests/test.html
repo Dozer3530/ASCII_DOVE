@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Glyphforge — self test</title>
+<title>ASCII_DOVE — self test</title>
 <style>
   body { background:#0a0908; color:#b8ac94; font:13px/1.5 'IBM Plex Mono',Consolas,monospace; margin:0; padding:26px 30px; }
   h1 { font:600 15px/1 Georgia,serif; letter-spacing:.22em; text-transform:uppercase; color:#e8dcc0; margin:0 0 4px; }
@@ -19,7 +19,7 @@
 </style>
 </head>
 <body>
-<h1>Glyphforge self test</h1>
+<h1>ASCII_DOVE self test</h1>
 <div class="sub">Runs the render pipeline, encoders and exporters against known inputs. Open this page from the same server as the app.</div>
 <div id="summary">running…</div>
 <table id="rows"></table>
@@ -465,7 +465,7 @@
 
   check('ZIP round-trips bytes and CRCs', function () {
     var enc = new TextEncoder();
-    var payload = enc.encode('hello ▚ glyphforge\nsecond line');
+    var payload = enc.encode('hello ▚ ascii_dove\nsecond line');
     var blob = SS.zip.build([
       { name: 'a.txt', data: payload },
       { name: 'nested/b.bin', data: new Uint8Array([0, 255, 128, 1, 2, 3]) }
@@ -479,7 +479,7 @@
       eq(new TextDecoder().decode(u8.subarray(30, 30 + nameLen)), 'a.txt', 'first name');
       eq(dv.getUint32(14, true), SS.zip.crc32(payload), 'crc');
       eq(new TextDecoder().decode(u8.subarray(30 + nameLen, 30 + nameLen + dataLen)),
-         'hello ▚ glyphforge\nsecond line', 'payload');
+         'hello ▚ ascii_dove\nsecond line', 'payload');
       return blob.size + ' bytes, 2 entries';
     });
   });

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — palettes.js
+   ASCII_DOVE — palettes.js
    Discrete colour palettes (nearest-match quantisation) and continuous
    gradient ramps (luminance-mapped).
    ========================================================================== */

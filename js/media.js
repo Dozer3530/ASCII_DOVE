@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — media.js
+   ASCII_DOVE — media.js
    One uniform "source" interface over stills, video, animated GIF/WebP/APNG,
    image sequences and the webcam.
 

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — charsets.js
+   ASCII_DOVE — charsets.js
    The glyph armoury. 60+ character sets across 12 categories.
 
    CONVENTION: every set is ordered DARK -> LIGHT.

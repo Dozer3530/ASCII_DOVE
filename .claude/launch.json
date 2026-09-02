@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "glyphforge",
+      "name": "ascii_dove",
       "runtimeExecutable": "node",
       "runtimeArgs": ["serve.js", "8777"],
       "port": 8777

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — imageproc.js
+   ASCII_DOVE — imageproc.js
    Tone mapping, blur/sharpen, dithering and the Sobel edge pass.
    Everything works on flat typed arrays for speed; nothing here touches DOM
    except the scratch canvases it owns.

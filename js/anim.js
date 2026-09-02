@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — anim.js
+   ASCII_DOVE — anim.js
    Per-parameter LFO modulation.
 
    A binding drives one animatable parameter from a waveform. The base value

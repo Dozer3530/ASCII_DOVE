@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — renderer.js
+   ASCII_DOVE — renderer.js
    Turns a source frame into a glyph grid, then paints that grid.
 
    render() returns a `grid` descriptor that the exporters reuse, so PNG, TXT,

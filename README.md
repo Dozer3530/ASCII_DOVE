@@ -1,4 +1,4 @@
-# Glyphforge
+# ASCII_DOVE
 
 A studio for turning images, video and live capture into glyph art.
 
@@ -34,8 +34,8 @@ so the server is the better way in.
 
 ![Six presets applied to the same image](docs/gallery.png)
 
-Each of those is one click from the preset menu, and every parameter behind
-them stays editable.
+Six of the 47 built-in presets. Each is one click from the preset menu, and
+every parameter behind them stays editable.
 
 ---
 
@@ -61,7 +61,7 @@ the ramp is divided into; offset rotates the luminance-to-glyph mapping.
 **Custom glyph injection** — paste up to 10 characters and blend them into the
 ramp, append or prepend them, or replace the set outright.
 
-**Measured density sorting.** Glyphforge can render every glyph in your chosen
+**Measured density sorting.** ASCII_DOVE can render every glyph in your chosen
 font, measure its actual ink coverage, and reorder the ramp accordingly. This
 is what makes exotic scripts and hand-made sets behave like a real tone ramp.
 
@@ -93,8 +93,9 @@ archives of PNG or text frame sequences.
 drag collapses into a single step, and a stray <kbd>R</kbd> (Roll) or Reset is
 always recoverable.
 
-**Presets** — 16 built in, plus save/load/import/export as JSON. Your working
-state is restored when you come back.
+**Presets** — 47 built in across seven groups (Terminal, Print, Line, Script,
+Symbol, Colour & Texture, Motion), plus save/load/import/export as JSON. Your
+working state is restored when you come back.
 
 ---
 
@@ -193,7 +194,7 @@ js/
   media.js          images, video, animated formats, sequences, camera, screen
   params.js         the parameter schema — one source of truth
   anim.js           LFO waveforms and the transport clock
-  presets.js        factory presets, localStorage, JSON import/export
+  presets.js        47 factory presets, localStorage, JSON import/export
   exporters.js      PNG, JPEG, TXT, ANSI, SVG, HTML, GIF, WebM, ZIP
   ui.js             control panel, glyph armoury, modals, toasts
   main.js           application controller

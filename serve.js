@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* ==========================================================================
-   Glyphforge — tiny static server.
+   ASCII_DOVE — tiny static server.
 
-   Glyphforge runs fine by double-clicking index.html, but a few browser
+   ASCII_DOVE runs fine by double-clicking index.html, but a few browser
    features (camera, screen capture, clipboard images) are only offered on
    http://localhost. Run this and open the printed URL to get all of them.
 
@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   // ASCII only: the Windows console's default codepage mangles arrows.
-  console.log('\n  Glyphforge -> http://localhost:' + PORT + '\n');
+  console.log('\n  ASCII_DOVE -> http://localhost:' + PORT + '\n');
   console.log('  Serving ' + ROOT);
   console.log('  Ctrl+C to stop.\n');
 });

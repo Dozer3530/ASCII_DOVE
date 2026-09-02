@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — ui.js
+   ASCII_DOVE — ui.js
    Builds the control panel and the glyph armoury from the schemas, plus the
    shared chrome (toasts, modals, the LFO editor).
 
@@ -553,11 +553,11 @@
   }
 
   function loadOpenGroups() {
-    try { return JSON.parse(localStorage.getItem('glyphforge.groups') || '{}') || {}; }
+    try { return JSON.parse(localStorage.getItem('asciidove.groups') || '{}') || {}; }
     catch (e) { return {}; }
   }
   function saveOpenGroups(o) {
-    try { localStorage.setItem('glyphforge.groups', JSON.stringify(o)); } catch (e) {}
+    try { localStorage.setItem('asciidove.groups', JSON.stringify(o)); } catch (e) {}
   }
 
   /* ───────────────────────── LFO editor ───────────────────────── */

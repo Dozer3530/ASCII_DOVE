@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — params.js
+   ASCII_DOVE — params.js
    The single source of truth for every knob in the app.
    The control panel, the preset format and the animation system are all
    generated from this schema, so adding a parameter here adds it everywhere.

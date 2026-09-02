@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — exporters.js
+   ASCII_DOVE — exporters.js
    Every export path consumes the same `grid` the viewport was painted from,
    so a PNG, a text file and an SVG of the same frame agree exactly.
    ========================================================================== */
@@ -57,7 +57,7 @@
     }
     return new Promise(function (resolve) {
       target.toBlob(function (blob) {
-        save(blob, (name || 'glyphforge-' + stamp()) + '.png');
+        save(blob, (name || 'ascii_dove-' + stamp()) + '.png');
         resolve(blob);
       }, 'image/png');
     });
@@ -73,7 +73,7 @@
     cx.drawImage(canvas, 0, 0);
     return new Promise(function (resolve) {
       t.toBlob(function (blob) {
-        save(blob, (name || 'glyphforge-' + stamp()) + '.jpg');
+        save(blob, (name || 'ascii_dove-' + stamp()) + '.jpg');
         resolve(blob);
       }, 'image/jpeg', quality == null ? 0.92 : quality);
     });
@@ -84,7 +84,7 @@
   function exportText(grid, trim, name) {
     var txt = SS.renderer.gridToText(grid, trim);
     save(new Blob([txt], { type: 'text/plain;charset=utf-8' }),
-      (name || 'glyphforge-' + stamp()) + '.txt');
+      (name || 'ascii_dove-' + stamp()) + '.txt');
     return txt;
   }
 
@@ -119,7 +119,7 @@
   function exportANSI(grid, includeBg, bgColor, name) {
     var txt = toANSI(grid, includeBg, bgColor);
     save(new Blob([txt], { type: 'text/plain;charset=utf-8' }),
-      (name || 'glyphforge-' + stamp()) + '.ans');
+      (name || 'ascii_dove-' + stamp()) + '.ans');
     return txt;
   }
 
@@ -137,7 +137,7 @@
     parts.push('<?xml version="1.0" encoding="UTF-8"?>');
     parts.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H +
       '" viewBox="0 0 ' + W + ' ' + H + '">');
-    parts.push('<title>Glyphforge plate</title>');
+    parts.push('<title>ASCII_DOVE plate</title>');
 
     if (state.bgMode === 'solid') {
       parts.push('<rect width="100%" height="100%" fill="' + escapeXml(state.bgColor) + '"/>');
@@ -190,7 +190,7 @@
   function exportSVG(grid, state, name) {
     var svg = toSVG(grid, state);
     save(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }),
-      (name || 'glyphforge-' + stamp()) + '.svg');
+      (name || 'ascii_dove-' + stamp()) + '.svg');
     return svg;
   }
 
@@ -243,7 +243,7 @@
     return [
       '<!doctype html>',
       '<meta charset="utf-8">',
-      '<title>Glyphforge plate</title>',
+      '<title>ASCII_DOVE plate</title>',
       '<style>',
       '  html,body{margin:0;background:' + bg + ';}',
       '  pre{',
@@ -266,7 +266,7 @@
   function exportHTML(grid, state, name) {
     var html = toHTML(grid, state);
     save(new Blob([html], { type: 'text/html;charset=utf-8' }),
-      (name || 'glyphforge-' + stamp()) + '.html');
+      (name || 'ascii_dove-' + stamp()) + '.html');
     return html;
   }
 
@@ -323,7 +323,7 @@
       });
       return c2.then(function () {
         var blob = enc.finish();
-        save(blob, (opts.name || 'glyphforge-' + stamp()) + '.gif');
+        save(blob, (opts.name || 'ascii_dove-' + stamp()) + '.gif');
         return blob;
       });
     });
@@ -357,7 +357,7 @@
 
     return chain.then(function () {
       var blob = SS.zip.build(entries);
-      save(blob, (opts.name || 'glyphforge-' + stamp()) + '-frames.zip');
+      save(blob, (opts.name || 'ascii_dove-' + stamp()) + '-frames.zip');
       return blob;
     });
   }
@@ -387,7 +387,7 @@
 
     return chain.then(function () {
       var blob = SS.zip.build(entries);
-      save(blob, (opts.name || 'glyphforge-' + stamp()) + '-text.zip');
+      save(blob, (opts.name || 'ascii_dove-' + stamp()) + '-text.zip');
       return blob;
     });
   }
@@ -425,7 +425,7 @@
       rec.onstop = function () {
         var ext = mime.indexOf('mp4') >= 0 ? '.mp4' : '.webm';
         var blob = new Blob(chunks, { type: mime || 'video/webm' });
-        save(blob, (opts.name || 'glyphforge-' + stamp()) + ext);
+        save(blob, (opts.name || 'ascii_dove-' + stamp()) + ext);
         try { track.stop(); } catch (e) {}
         resolve(blob);
       };

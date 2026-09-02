@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GLYPHFORGE — lib/gifenc.js
+   ASCII_DOVE — lib/gifenc.js
    A compact GIF89a encoder: colour quantisation (exact when possible, median
    cut otherwise) + variable-width LZW, emitting animated, looping GIFs.
    No dependencies — ASCII animations should be shareable offline.

@@ -1,13 +1,13 @@
 @echo off
 setlocal
-title Glyphforge
+title ASCII_DOVE
 cd /d "%~dp0"
 
 set "PORT=8777"
 if not "%~1"=="" set "PORT=%~1"
 
 echo.
-echo   GLYPHFORGE
+echo   ASCII_DOVE
 echo   ----------
 echo.
 
@@ -38,7 +38,7 @@ goto :EOF
 :NONODE
 echo   Node.js was not found on PATH, so opening the file directly.
 echo.
-echo   Glyphforge works this way, but browsers only offer the camera,
+echo   ASCII_DOVE works this way, but browsers only offer the camera,
 echo   screen capture and "copy image" features over http://localhost.
 echo   Install Node.js from https://nodejs.org to get those.
 echo.

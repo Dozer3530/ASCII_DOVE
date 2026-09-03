@@ -1,7 +1,7 @@
 /* ==========================================================================
    ASCII_DOVE — app.css
-   "Forge & Vellum": engraved caps, gold-leaf hairlines, ember accents on a
-   warm near-black. Ornament lives at the edges; the controls stay surgical.
+   All styling. Colours, fonts and metrics are CSS custom properties on :root;
+   change those rather than the rules below.
    ========================================================================== */
 
 /* ───────────────────────────── tokens ───────────────────────────── */

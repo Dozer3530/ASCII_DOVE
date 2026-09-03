@@ -32,7 +32,6 @@
   var GROUPS = [
     {
       id: 'grid', name: 'Grid', sigil: '▦',
-      hint: 'Resolution of the glyph lattice.',
       params: [
         { key: 'sizeMode', label: 'Sizing', type: 'select', def: 'cols',
           options: [{ value: 'cols', label: 'By column count' }, { value: 'width', label: 'By output width' }] },
@@ -51,7 +50,6 @@
     },
     {
       id: 'type', name: 'Type', sigil: 'Aa',
-      hint: 'The face the glyphs are cut from.',
       params: [
         { key: 'fontFamily', label: 'Font', type: 'select', def: 'Consolas', options: FONT_OPTIONS },
         { key: 'fontScale', label: 'Glyph size', type: 'range', min: 0.3, max: 2.2, step: 0.01, def: 1.0, anim: true,
@@ -67,7 +65,6 @@
     },
     {
       id: 'charset', name: 'Characters', sigil: '§',
-      hint: 'Which glyphs carry which tones.',
       params: [
         { key: 'setId', label: 'Character set', type: 'select', def: 'std10', options: setOptions, searchable: true },
         { key: 'depth', label: 'Character depth', type: 'range', min: 2, max: 256, step: 1, def: 10, anim: true,
@@ -100,7 +97,6 @@
     },
     {
       id: 'tone', name: 'Tone', sigil: '◐',
-      hint: 'Everything that shapes luminance before it becomes a glyph.',
       params: [
         { key: 'brightness', label: 'Brightness', type: 'range', min: -1, max: 1, step: 0.01, def: 0, anim: true },
         { key: 'contrast', label: 'Contrast', type: 'range', min: -1, max: 1, step: 0.01, def: 0.1, anim: true },
@@ -128,7 +124,7 @@
     },
     {
       id: 'dither', name: 'Dither', sigil: '▒',
-      hint: 'How tones between two glyphs get resolved.',
+      hint: 'How tones between two glyphs are resolved.',
       params: [
         { key: 'dither', label: 'Algorithm', type: 'select', def: 'none',
           options: [
@@ -150,7 +146,7 @@
     },
     {
       id: 'edges', name: 'Edges', sigil: '╱',
-      hint: 'A Sobel pass that replaces cells on strong contours with directional strokes. This is what makes shapes read.',
+      hint: 'Replaces cells on strong contours with directional strokes.',
       params: [
         { key: 'edgeMode', label: 'Mode', type: 'select', def: 'off',
           options: [
@@ -177,7 +173,6 @@
     },
     {
       id: 'colour', name: 'Colour', sigil: '◈',
-      hint: 'How each glyph is inked.',
       params: [
         { key: 'colorMode', label: 'Mode', type: 'select', def: 'mono',
           options: [
@@ -235,7 +230,7 @@
     },
     {
       id: 'fx', name: 'Effects', sigil: '✦',
-      hint: 'Applied to the rendered plate.',
+      hint: 'Applied after the glyphs are drawn.',
       params: [
         { key: 'glow', label: 'Glyph glow', type: 'range', min: 0, max: 30, step: 0.5, def: 0, anim: true },
         { key: 'bloom', label: 'Bloom', type: 'range', min: 0, max: 1, step: 0.01, def: 0, anim: true },

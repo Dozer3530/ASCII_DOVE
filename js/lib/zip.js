@@ -1,8 +1,7 @@
 /* ==========================================================================
    ASCII_DOVE — lib/zip.js
-   Minimal store-only (uncompressed) ZIP writer.
-   PNG frames are already compressed, so deflating them again buys nothing —
-   storing keeps this to ~80 lines with no dependency.
+   Store-only (uncompressed) ZIP writer. PNG frames are already compressed,
+   so deflating them again would cost time and save nothing.
    ========================================================================== */
 (function (global) {
   'use strict';

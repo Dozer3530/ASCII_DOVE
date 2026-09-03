@@ -63,7 +63,7 @@
     },
     {
       name: 'Green Phosphor', group: 'Terminal',
-      note: 'The other terminal. Sharper, colder, more legible.',
+      note: 'Sharper and colder than amber, and more legible.',
       state: {
         setId: 'terminal', depth: 8, cols: 170, cellW: 7,
         colorMode: 'palette', paletteId: 'phosphorGreen',
@@ -139,7 +139,7 @@
     },
     {
       name: 'Halftone Press', group: 'Print',
-      note: 'Ordered dithering at low depth — newsprint, basically.',
+      note: 'Ordered dithering at low depth.',
       state: {
         setId: 'minimal5', depth: 5, cols: 200, cellW: 6,
         dither: 'bayer8', ditherAmount: 1,
@@ -182,7 +182,7 @@
     },
     {
       name: 'Card Table', group: 'Symbol',
-      note: 'Suits as tone. Absurd and it works.',
+      note: 'Card suits as a nine-step tone ramp.',
       state: {
         setId: 'suits', depth: 9, cols: 90, cellW: 13, cellRatio: 1.5,
         colorMode: 'duotone', duoDark: '#1b1b22', duoLight: '#e8d8b0',
@@ -282,7 +282,7 @@
     },
     {
       name: 'Risograph', group: 'Print',
-      note: 'Five ink drums, hard dither, no blending anywhere.',
+      note: 'Five ink drums, hard dither, no blending.',
       state: {
         setId: 'shade', depth: 4, cols: 170, cellW: 8,
         dither: 'burkes', ditherAmount: 1,
@@ -381,7 +381,7 @@
     /* ---- Symbol ------------------------------------------------------ */
     {
       name: 'Chess Study', group: 'Symbol',
-      note: 'Pieces as tone. Large cells, or it turns to soup.',
+      note: 'Chess pieces as tone. Needs large cells to read.',
       state: {
         setId: 'chess', depth: 12, cols: 80, cellW: 15, cellRatio: 1.2,
         colorMode: 'mono', fgColor: '#e8dcc0', bgMode: 'solid', bgColor: '#1a1713',
@@ -430,7 +430,7 @@
     },
     {
       name: 'Weathervane', group: 'Symbol',
-      note: 'Arrows as tone. Chaos up close, legible from across the room.',
+      note: 'Arrows as tone — noisy up close, legible at a distance.',
       state: {
         setId: 'arrows', depth: 15, cols: 140, cellW: 9,
         colorMode: 'gradient', gradientId: 'copper',
@@ -472,7 +472,7 @@
     },
     {
       name: 'Measured Ink', group: 'Colour & Texture',
-      note: 'Punctuation reordered by real measured coverage — this ramp is computed, not authored.',
+      note: 'Punctuation reordered by measured ink coverage.',
       state: {
         setId: 'punct', depth: 24, cols: 180, cellW: 7,
         autoDensity: true,

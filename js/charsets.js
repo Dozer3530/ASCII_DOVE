@@ -1,6 +1,6 @@
 /* ==========================================================================
    ASCII_DOVE — charsets.js
-   The glyph armoury. 60+ character sets across 12 categories.
+   The glyph armoury. 101 character sets across 12 categories.
 
    CONVENTION: every set is ordered DARK -> LIGHT.
    Index 0 is the emptiest glyph (least ink), the last index is the densest.

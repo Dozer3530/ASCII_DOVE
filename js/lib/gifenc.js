@@ -1,8 +1,7 @@
 /* ==========================================================================
    ASCII_DOVE — lib/gifenc.js
-   A compact GIF89a encoder: colour quantisation (exact when possible, median
-   cut otherwise) + variable-width LZW, emitting animated, looping GIFs.
-   No dependencies — ASCII animations should be shareable offline.
+   GIF89a encoder. Colour quantisation (exact when it fits, median cut
+   otherwise) plus variable-width LZW, emitting animated looping GIFs.
    ========================================================================== */
 (function (global) {
   'use strict';

@@ -2,9 +2,8 @@
    ASCII_DOVE — renderer.js
    Turns a source frame into a glyph grid, then paints that grid.
 
-   render() returns a `grid` descriptor that the exporters reuse, so PNG, TXT,
-   ANSI, SVG and HTML all come from exactly the same pass — what you see is
-   literally what you export.
+   render() returns a `grid` descriptor the exporters reuse, so PNG, TXT, ANSI,
+   SVG and HTML all come from the same pass.
    ========================================================================== */
 (function (global) {
   'use strict';

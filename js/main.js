@@ -93,7 +93,7 @@
     requestRender();
     loop();
 
-    UI.toast('ASCII_DOVE ready — drop an image anywhere, or press ? for keys', 'good', 4200);
+    UI.toast('Drop an image anywhere · press ? for shortcuts', 'good', 4200);
   }
 
   /* ───────────────────────── parameter plumbing ───────────────────────── */

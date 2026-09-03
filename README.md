@@ -65,6 +65,8 @@ Every frame is a fresh render: tone glyphs in amber, contour strokes in white tr
 
 ## Run it locally
 
+On a phone you get a separate touch build — camera-first, presets on a swipe strip, controls in bottom sheets. Visiting the site on a phone lands you there automatically.
+
 **Windows** — double-click `run.bat`.
 
 **Everything else** — `node serve.js`, then open <http://localhost:8777>.

@@ -235,12 +235,18 @@
 
   /* --- webcam ---------------------------------------------------------------- */
 
-  function startWebcam() {
+  /**
+   * @param {string} [facingMode] 'user' or 'environment'. Phones need it to
+   *   choose a camera; omitted (as the desktop app does) it is not sent at all.
+   */
+  function startWebcam(facingMode) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return Promise.reject(new Error('This browser exposes no camera API.'));
     }
+    var video = { width: { ideal: 1280 }, height: { ideal: 720 } };
+    if (facingMode) video.facingMode = { ideal: facingMode };
     return navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
+      video: video, audio: false
     }).then(function (stream) {
       var v = document.createElement('video');
       v.srcObject = stream;
@@ -455,7 +461,7 @@
     loadFiles: loadFiles,
     loadImageURL: function (u, l) { return loadImageURL(u, l).then(setSource); },
     loadSequenceFiles: function (f) { return loadSequenceFiles(f).then(setSource); },
-    startWebcam: function () { return startWebcam().then(setSource); },
+    startWebcam: function (facingMode) { return startWebcam(facingMode).then(setSource); },
     startScreen: function () { return startScreen().then(setSource); },
     buildDefault: buildDefault,
     hasImageDecoder: hasImageDecoder,

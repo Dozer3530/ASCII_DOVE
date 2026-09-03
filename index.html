@@ -10,6 +10,35 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 
+<script>
+/* Send phones to the touch build, before any styling, so there is no flash of
+   the desktop layout.
+
+   Deliberately NOT navigator.maxTouchPoints: Windows laptops with a
+   touchscreen report 10 of them, and a narrow window would then bounce a
+   desktop user into the phone UI. `pointer: coarse` asks whether the *primary*
+   pointer is a finger, which is the actual question — a touch laptop with a
+   trackpad reports `fine`.
+
+   `?desktop=1` overrides and is remembered. */
+(function () {
+  try {
+    if (/[?&]desktop=1/.test(location.search)) {
+      localStorage.setItem('asciidove.forceDesktop', '1');
+      return;
+    }
+    if (localStorage.getItem('asciidove.forceDesktop') === '1') return;
+
+    var ua = navigator.userAgentData;
+    var isPhone = !!(ua && ua.mobile === true);
+    var coarse = window.matchMedia('(pointer: coarse)').matches;
+    var narrow = window.matchMedia('(max-width: 900px)').matches;
+
+    if (isPhone || (coarse && narrow)) location.replace('mobile.html');
+  } catch (e) { /* storage or matchMedia blocked — stay on desktop */ }
+})();
+</script>
+
 <link rel="stylesheet" href="css/app.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0908'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23c9a227' font-family='serif'%3E%40%3C/text%3E%3C/svg%3E">
 </head>

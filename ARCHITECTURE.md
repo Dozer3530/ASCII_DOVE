@@ -6,10 +6,12 @@ network request is the Google Fonts stylesheet, which falls back to system
 fonts offline.
 
 ```
-index.html          markup and script order
+index.html          desktop shell (redirects phones to mobile.html)
+mobile.html         touch shell
 run.bat             Windows launcher
 serve.js            static server, no dependencies
-css/app.css         all styling
+css/app.css         desktop styling
+css/mobile.css      touch styling
 tests/test.html     37 self-tests
 docs/               README images
 js/
@@ -22,11 +24,29 @@ js/
   anim.js           LFO waveforms and the transport clock
   presets.js        47 factory presets, localStorage, JSON portability
   exporters.js      PNG, JPEG, TXT, ANSI, SVG, HTML, GIF, WebM, ZIP
-  ui.js             control panel, glyph armoury, modals, toasts
-  main.js           application controller
+  ui.js             desktop control panel, armoury, modals, toasts
+  main.js           desktop application controller
+  mobile.js         touch controller — replaces ui.js + main.js
   lib/zip.js        store-only ZIP writer
   lib/gifenc.js     GIF89a encoder — median-cut quantiser + LZW
 ```
+
+## Two shells, one engine
+
+Everything from `charsets.js` down to `exporters.js` is shell-independent —
+it takes a canvas context, a source and a state object, and touches no app DOM.
+`ui.js` + `main.js` are the desktop front-end; `mobile.js` is a separate one.
+Neither loads the other, so changing one cannot regress the other.
+
+The touch build exposes a curated dozen controls rather than all 73, and
+defaults to fewer columns with the edge pass off, because phone CPUs run this
+several times slower. Presets and saved state are shared through the same
+localStorage keys.
+
+Phones are routed there by a guard in `index.html`. It tests `pointer: coarse`
+and `navigator.userAgentData.mobile`, deliberately not `maxTouchPoints` —
+Windows laptops with a touchscreen report 10 of those and would be sent to the
+phone UI by mistake. `?desktop=1` overrides it.
 
 ## The render pipeline
 

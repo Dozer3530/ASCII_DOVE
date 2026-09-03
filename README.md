@@ -31,8 +31,8 @@ node serve.js
 Then open **http://localhost:8777**.
 
 Double-clicking `index.html` works too, but browsers only offer the camera,
-screen capture and "copy image to clipboard" features over `http://localhost`,
-so the server is the better way in.
+screen capture and "copy image to clipboard" features on a secure origin —
+`https://` or `http://localhost`. A `file://` page gets everything else.
 
 ---
 

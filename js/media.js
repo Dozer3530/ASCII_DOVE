@@ -243,11 +243,22 @@
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return Promise.reject(new Error('This browser exposes no camera API.'));
     }
-    var video = { width: { ideal: 1280 }, height: { ideal: 720 } };
-    if (facingMode) video.facingMode = { ideal: facingMode };
-    return navigator.mediaDevices.getUserMedia({
-      video: video, audio: false
-    }).then(function (stream) {
+    function attempt(strict) {
+      var video = { width: { ideal: 1280 }, height: { ideal: 720 } };
+      if (facingMode) {
+        // `ideal` lets the browser quietly hand back the camera you already
+        // had, so a flip silently does nothing. Ask for `exact` first and fall
+        // back for single-camera devices, which reject it outright.
+        video.facingMode = strict ? { exact: facingMode } : { ideal: facingMode };
+      }
+      return navigator.mediaDevices.getUserMedia({ video: video, audio: false });
+    }
+
+    var request = facingMode
+      ? attempt(true).catch(function () { return attempt(false); })
+      : attempt(false);
+
+    return request.then(function (stream) {
       var v = document.createElement('video');
       v.srcObject = stream;
       v.muted = true;
@@ -455,9 +466,26 @@
     };
   }
 
+  /**
+   * Release a live camera or screen capture and clear the source.
+   *
+   * Needed before switching cameras: a phone can only serve one at a time, so
+   * requesting the second while the first still holds the hardware fails with
+   * NotReadableError. Only touches live sources — stills and video are left
+   * alone. Returns true if something was released.
+   */
+  function stopLive() {
+    if (!current || !current.live) return false;
+    if (current.dispose) { try { current.dispose(); } catch (e) {} }
+    current = null;
+    emit('source', null);
+    return true;
+  }
+
   SS.media = {
     get current() { return current; },
     setSource: setSource,
+    stopLive: stopLive,
     loadFiles: loadFiles,
     loadImageURL: function (u, l) { return loadImageURL(u, l).then(setSource); },
     loadSequenceFiles: function (f) { return loadSequenceFiles(f).then(setSource); },

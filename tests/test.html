@@ -590,6 +590,37 @@
     });
   });
 
+  check('stopLive releases a camera but leaves stills alone', function () {
+    // Switching cameras on a phone fails unless the running one is released
+    // first — it cannot serve two at once.
+    var disposed = 0;
+    function fake(live) {
+      return { kind: live ? 'webcam' : 'image', el: document.createElement('canvas'),
+               width: 8, height: 8, live: live, animated: !!live,
+               duration: 0, time: 0, paused: true,
+               play: function () {}, pause: function () {}, seek: function () {},
+               dispose: function () { disposed++; } };
+    }
+
+    var before = SS.media.current;
+
+    SS.media.setSource(fake(false));
+    eq(SS.media.stopLive(), false, 'a still is not a live source');
+    eq(disposed, 0, 'still must not be disposed');
+    assert(SS.media.current, 'still should remain current');
+
+    // Reset after the swap: setSource disposes the outgoing still, which would
+    // otherwise be counted against the camera.
+    SS.media.setSource(fake(true));
+    disposed = 0;
+    eq(SS.media.stopLive(), true, 'a camera is a live source');
+    eq(disposed, 1, 'camera should be disposed exactly once');
+    eq(SS.media.current, null, 'current must be cleared so nothing draws a dead stream');
+
+    if (before) SS.media.setSource(before);
+    return 'live released, still untouched';
+  });
+
   /* ── exporters ────────────────────────────────────────────────── */
   group('Exporters');
 

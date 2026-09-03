@@ -333,17 +333,41 @@
   /* ───────────────────────── sources ───────────────────────── */
 
   var facing = 'environment';
+  var camBusy = false;
 
   function useCamera() {
-    toast('Starting camera…');
-    SS.media.startWebcam(facing).then(function () {
+    if (camBusy) return;                       // double-taps race the hardware
+    camBusy = true;
+
+    var want = facing;
+    var wasLive = !!(SS.media.current && SS.media.current.live);
+
+    // The running camera has to be released first. Holding both is what makes
+    // the second getUserMedia fail on a phone.
+    if (wasLive) SS.media.stopLive();
+    toast(wasLive ? 'Switching camera…' : 'Starting camera…');
+
+    SS.media.startWebcam(want).then(function () {
+      facing = want === 'user' ? 'environment' : 'user';
       view.fitted = true;
       requestRender();
-      toast(facing === 'user' ? 'Front camera' : 'Rear camera — tap again to flip');
-      facing = facing === 'user' ? 'environment' : 'user';
+      toast(want === 'user' ? 'Front camera · tap to flip' : 'Rear camera · tap to flip');
     }).catch(function (e) {
-      toast(e.message || 'Camera unavailable', true);
-    });
+      // We already let go of the old stream, so recover rather than leaving a
+      // dead viewport: any camera, else back to the built-in chart.
+      return SS.media.startWebcam().then(function () {
+        view.fitted = true;
+        requestRender();
+        toast('Could not switch camera — kept the current one', true);
+      }).catch(function () {
+        SS.media.setSource(SS.media.buildDefault());
+        view.fitted = true;
+        requestRender();
+        toast(e && e.name === 'NotAllowedError'
+          ? 'Camera permission denied'
+          : 'Camera unavailable' + (e && e.name ? ' (' + e.name + ')' : ''), true);
+      });
+    }).then(function () { camBusy = false; }, function () { camBusy = false; });
   }
 
   /* ───────────────────────── export ───────────────────────── */

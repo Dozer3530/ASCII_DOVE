@@ -12,7 +12,7 @@ run.bat             Windows launcher
 serve.js            static server, no dependencies
 css/app.css         desktop styling
 css/mobile.css      touch styling
-tests/test.html     37 self-tests
+tests/test.html     38 self-tests
 docs/               README images
 js/
   charsets.js       101 sets, injection, measured density sorting

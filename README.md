@@ -30,9 +30,9 @@ Six of the 47 presets. One click each, and every parameter stays open underneath
 | **Export** | PNG, JPEG, TXT, ANSI, SVG, HTML, animated GIF, WebM, and ZIPs of PNG or text frame sequences. |
 | **Presets** | 47 built in across seven groups. Save your own, import and export as JSON. |
 
-![The character offset animated on a saw wave](docs/motion.gif)
+![A ringed planet rendered live in ASCII, its terminator sweeping as the light orbits](docs/motion.gif)
 
-Only the character offset is moving here. The source is a still.
+Every frame is a fresh render: tone glyphs in amber, contour strokes in white tracing the sphere and the ring as it passes in front and behind.
 
 ---
 

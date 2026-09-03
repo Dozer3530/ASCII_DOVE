@@ -513,6 +513,13 @@
     $('#btnExport').addEventListener('click', openExport);
     $('#btnHelp').addEventListener('click', function () { UI.openModal('modalHelp'); });
 
+    // Going desktop->mobile has to clear the override, or the redirect in
+    // index.html sends you straight back and there is no way out.
+    var toMobile = $('#linkMobile');
+    if (toMobile) toMobile.addEventListener('click', function () {
+      try { localStorage.removeItem('asciidove.forceDesktop'); } catch (e) {}
+    });
+
     $('#btnReset').addEventListener('click', function () {
       recordNow();
       state = P.defaults();

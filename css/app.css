@@ -1022,3 +1022,7 @@ input[type="color"]::-moz-color-swatch { border: none; border-radius: 1px; }
   .no-right .rail-toggle-right { right: 0; }
   .mark-sub, .tb-source { display: none; }
 }
+
+/* Escape hatch to the touch build, in the help dialog. */
+.help-link { color: var(--gold); text-decoration: none; border-bottom: 1px solid var(--rule-strong); }
+.help-link:hover { color: var(--gold-hi); }

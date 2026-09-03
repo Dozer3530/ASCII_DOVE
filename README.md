@@ -2,8 +2,10 @@
 
 A studio for turning images, video and live capture into glyph art.
 
+### ▶ [Try it live](https://dozer3530.github.io/ASCII_DOVE/)
+
 Everything runs in the browser, locally. No build step, no dependencies, no
-uploads.
+uploads — your images never leave your machine.
 
 ![Classic ASCII with Sobel edge strokes picked out in gold](docs/hero.png)
 
@@ -12,6 +14,10 @@ edge pass tracing contours in gold. Every character is real, selectable text if
 you export it as `.txt`, `.svg` or `.html`.*
 
 ## Run it
+
+The [hosted copy](https://dozer3530.github.io/ASCII_DOVE/) is the quickest way
+in and has everything, camera included — it is served over HTTPS, which is all
+the browser needs. To run it yourself:
 
 **Windows** — double-click **`run.bat`**. It starts the local server and opens
 your browser.
